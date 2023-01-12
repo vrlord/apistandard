@@ -1,5 +1,7 @@
 package com.syngenta.apistandard.helper;
 
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.logging.Logger;
 import java.util.Map;
 import java.util.HashMap;
@@ -13,6 +15,10 @@ import java.time.format.DateTimeFormatter;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.net.http.HttpResponse;
 import java.net.http.HttpRequest;
 import java.net.http.HttpClient;
@@ -20,9 +26,24 @@ import java.net.URI;
 import java.io.IOException;
 
 public class HoboData {
+    //trust all certificates
+    static TrustManager[] trustAllCerts = new TrustManager[]{
+            new X509TrustManager() {
+                @Override
+                public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) {
+                }
+                @Override
+                public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) {
+                }
+                @Override
+                public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                    return new java.security.cert.X509Certificate[]{};
+                }
+            }
+    };
     private final static Logger log = Logger.getLogger("com.syngenta.apistandard.helper.HoboData");
 
-    private static String getToken() throws IOException, InterruptedException{
+    private static String getToken() throws IOException, InterruptedException, NoSuchAlgorithmException, KeyManagementException {
         log.info("Authenticating, please wait");
 
         Map<String, String> formData = new HashMap<>();
@@ -30,12 +51,19 @@ public class HoboData {
         formData.put("client_id", "Henry_WS");
         formData.put("client_secret", "de235eae211c94c7d3a09aa96688c2b03f7af8bf");
 
+        SSLContext sslContext = SSLContext.getInstance("SSL");
+        sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+        HttpClient httpClient = HttpClient.newBuilder()
+                .sslContext(sslContext)
+                .build();
+
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://webservice.hobolink.com/ws/auth/token"))
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .method("POST", HttpRequest.BodyPublishers.ofString(Util.getFormDataAsString(formData)))
                 .build();
-        HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+        //HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         //System.out.println(response.body());
         if(response.statusCode() == 200){
             final JSONObject obj = new JSONObject(response.body());
@@ -53,13 +81,19 @@ public class HoboData {
         return null;
     }
 
-    private static String getInfo(String bearer, String logger, String date) throws IOException, InterruptedException{
+    private static String getInfo(String bearer, String logger, String date) throws IOException, InterruptedException, KeyManagementException, NoSuchAlgorithmException {
         Map<String, String> formData = new HashMap<>();
         formData.put("loggers", logger); //comma separated
         formData.put("start_date_time", date + " 00:00:00");
         formData.put("end_date_time", date + " 23:59:59");
 
         //System.out.println("URI: " + URI.create("https://webservice.hobolink.com/ws/data/file/json/user/8933" + Util.convertMaptoQueryString(formData)));
+
+        SSLContext sslContext = SSLContext.getInstance("SSL");
+        sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+        HttpClient httpClient = HttpClient.newBuilder()
+                .sslContext(sslContext)
+                .build();
 
         HttpRequest request = HttpRequest.newBuilder()
                 //.uri(URI.create("https://webservice.hobolink.com/ws/data/file/json/user/8933?loggers=21317982&start_date_time=2022-12-19%2000%3A00%3A00&end_date_time=2022-12-19%2023%3A59%3A59"))
@@ -68,7 +102,8 @@ public class HoboData {
                 .method("GET", HttpRequest.BodyPublishers.noBody())
                 .build();
         System.out.println("Getting data from server");
-        HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+        //HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         //System.out.println(response.body());
         System.out.println(response.statusCode());
         if(response.statusCode() == 200){
@@ -170,7 +205,7 @@ public class HoboData {
         return "end";
     }
 
-    private static String retrieveToken() throws IOException, InterruptedException{
+    private static String retrieveToken() throws IOException, InterruptedException, NoSuchAlgorithmException, KeyManagementException {
         String token = null;
         while(token == null){
             token = getToken();
@@ -179,7 +214,7 @@ public class HoboData {
     }
 
 
-    public static void GetNewData(LocalDate fromdate, LocalDate todate, String loggersn) throws IOException, InterruptedException{
+    public static void GetNewData(LocalDate fromdate, LocalDate todate, String loggersn) throws IOException, InterruptedException, NoSuchAlgorithmException, KeyManagementException {
 
 
         // loop of dates

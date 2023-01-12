@@ -57,11 +57,10 @@ public class TempsController {
                 20758903 => Syngenta Arica´s Site
             */
 
+            //2022-12-27
+
             HoboData.GetNewData(fromDate, toDate, loggerSn);
         }
-
-
-
 
         log.info("Finished");
         return ResponseEntity.status(HttpStatus.OK).body(rtn);
