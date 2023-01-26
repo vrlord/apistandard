@@ -2,6 +2,7 @@ package com.syngenta.apistandard.helper;
 
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.Map;
 import java.util.HashMap;
@@ -12,8 +13,9 @@ import java.sql.DriverManager;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+
+import com.syngenta.apistandard.notifications.Notify;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.net.ssl.SSLContext;
@@ -110,6 +112,9 @@ public class HoboData {
             final JSONObject obj = new JSONObject(response.body());
             final JSONArray jsonArray = obj.getJSONArray("observation_list");
 
+            AtomicInteger totalSavedRecords = new AtomicInteger();
+            AtomicInteger totalErrorRecords = new AtomicInteger();
+
 
             String url = "jdbc:postgresql://localhost/syngenta?user=darwo&password=darwosyngenta&ssl=false";
             try{
@@ -165,8 +170,11 @@ public class HoboData {
                         st.setObject(13, localDateTime);
                         st.executeUpdate();
                         st.close();
+                        totalSavedRecords.getAndIncrement();
                     }catch(SQLException sqle){
                         log.warning("Error saving record: " + sqle);
+                        //notification err saving record (maybe send file?)
+                        totalErrorRecords.getAndIncrement();
                     }
 
                 });
@@ -176,11 +184,14 @@ public class HoboData {
 
             }catch(SQLException e){
                 log.warning("Error connecting to DB: " + e);
+                //notification error DB
 
                 return "db_error";
             }
-
-            log.info("Saved: " + jsonArray.length() + " records");
+            String message = "Logger: " + logger + "%0ATotal Records: " + jsonArray.length() + "%0ASaved: " + totalSavedRecords + "%0AErrors: " + totalErrorRecords;
+            log.info(message);
+            Notify.sendInsecuredTelegramNotif(message);
+            //send notification
 
 
             return "ok";
@@ -231,8 +242,17 @@ public class HoboData {
         */
 
         while(startDate.isBefore(endDate) || startDate.isEqual(endDate)){
-            //log.info("looping");
-            System.out.println("Retrieving data from date: " + startDate + " until: " + endDate);
+
+            String message = "Logger: " + loggersn + "%0ADate Start: " + startDate + "%0ADate End: " + endDate;
+            log.info(message);
+
+            new Thread(() -> {
+                try {
+                    Notify.sendInsecuredTelegramNotif(message);
+                } catch (NoSuchAlgorithmException | KeyManagementException e) {
+                    throw new RuntimeException(e);
+                }
+            }).start();
 
             String status = getInfo(token, logger, startDate.toString());
             while(status != "ok"){

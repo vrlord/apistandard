@@ -41,16 +41,18 @@ public class TempsController {
     }
 
     @PostMapping("/getnewdata")
-    public @ResponseBody ResponseEntity<Map<String, Object>> getNewData(@RequestBody DateRange dateRange) throws IOException, InterruptedException, NoSuchAlgorithmException, KeyManagementException {
+    public @ResponseBody ResponseEntity<Map<String, Object>> getNewData(@RequestBody DateRange dateRange){
         Map<String, Object> rtn = new LinkedHashMap<>();
 
         LocalDate fromDate = dateRange.getFromdate();
         LocalDate toDate = dateRange.getTodate() == null ? LocalDate.now() : dateRange.getTodate();
         String loggerSn = dateRange.getLoggersn();
 
-        log.info("looking date range from: " + fromDate + ", to date: " + toDate + ", loggersn: " + loggerSn);
+        //log.info("looking date range from: " + fromDate + ", to date: " + toDate);
+        log.info("Executing retrieving data Threads");
 
-        if(fromDate != null || loggerSn != null){
+        //if(fromDate != null || loggerSn != null){
+        if(fromDate != null){
             /*
                 21317982 => Arriendo
                 20993658 => Syngenta Arica, Sta Gema
@@ -59,10 +61,74 @@ public class TempsController {
 
             //2022-12-27
 
-            HoboData.GetNewData(fromDate, toDate, loggerSn);
+            new Thread(() -> {
+                try {
+                    HoboData.GetNewData(fromDate, toDate, "21317982");
+                } catch (IOException | KeyManagementException | NoSuchAlgorithmException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }).start();
+
+            new Thread(() -> {
+                try {
+                    HoboData.GetNewData(fromDate, toDate, "20993658");
+                } catch (IOException | KeyManagementException | NoSuchAlgorithmException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }).start();
+
+            new Thread(() -> {
+                try {
+                    HoboData.GetNewData(fromDate, toDate, "20758903");
+                } catch (IOException | KeyManagementException | NoSuchAlgorithmException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }).start();
         }
 
         log.info("Finished");
+        return ResponseEntity.status(HttpStatus.OK).body(rtn);
+    }
+
+    @GetMapping("/getnewdatasimple/{fDate}")
+    public @ResponseBody ResponseEntity<Map<String, Object>> getNewDataSimple(@PathVariable LocalDate fDate){
+        Map<String, Object> rtn = new LinkedHashMap<>();
+
+        LocalDate toDate = LocalDate.now();
+
+        log.info("Executing retrieving data Threads");
+
+        if(fDate != null){
+
+            //2022-12-27
+
+            new Thread(() -> {
+                try {
+                    HoboData.GetNewData(fDate, toDate, "21317982");
+                } catch (IOException | KeyManagementException | NoSuchAlgorithmException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }).start();
+
+            new Thread(() -> {
+                try {
+                    HoboData.GetNewData(fDate, toDate, "20993658");
+                } catch (IOException | KeyManagementException | NoSuchAlgorithmException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }).start();
+
+            new Thread(() -> {
+                try {
+                    HoboData.GetNewData(fDate, toDate, "20758903");
+                } catch (IOException | KeyManagementException | NoSuchAlgorithmException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }).start();
+        }
+
+        log.info("Finished");
+        rtn.put("success", "job requested");
         return ResponseEntity.status(HttpStatus.OK).body(rtn);
     }
 
