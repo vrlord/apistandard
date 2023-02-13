@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -130,6 +131,18 @@ public class TempsController {
         log.info("Finished");
         rtn.put("success", "job requested");
         return ResponseEntity.status(HttpStatus.OK).body(rtn);
+    }
+
+
+    @Scheduled(cron = "0 15 7 * * ?")
+    public void getDataFromSensors(){
+        LocalDate today = LocalDate.now();
+        LocalDate twoDaysAgo = today.minusDays(2);
+
+        System.out.println("Cron Requesting data from: " + twoDaysAgo);
+
+        getNewDataSimple(twoDaysAgo);
+
     }
 
 //    @GetMapping();

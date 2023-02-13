@@ -172,7 +172,7 @@ public class HoboData {
                         st.close();
                         totalSavedRecords.getAndIncrement();
                     }catch(SQLException sqle){
-                        log.warning("Error saving record: " + sqle);
+                        //log.warning("Error saving record: " + sqle);
                         //notification err saving record (maybe send file?)
                         totalErrorRecords.getAndIncrement();
                     }
@@ -188,7 +188,7 @@ public class HoboData {
 
                 return "db_error";
             }
-            String message = "Logger: " + logger + "%0ATotal Records: " + jsonArray.length() + "%0ASaved: " + totalSavedRecords + "%0AErrors: " + totalErrorRecords;
+            String message = "Logger: " + logger + "%0ADate: " + date + "%0ATotal Records: " + jsonArray.length() + "%0ASaved: " + totalSavedRecords + "%0AErrors: " + totalErrorRecords;
             log.info(message);
             Notify.sendInsecuredTelegramNotif(message);
             //send notification
